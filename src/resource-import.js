@@ -9,7 +9,7 @@ export class ResourceImporter{
  async scan(tool){
   if(!['opencode','pi','claude-code','gemini-cli'].includes(tool))throw Error('此工具尚无资源导入适配器');
   const engine=this.engine,home=engine.home,locations=await engine.getLocations();
-  if(tool==='claude-code'&&engine.env.CLAUDE_CONFIG_DIR)throw Error('自定义 Claude 目录暂不支持导入');
+  if(tool==='claude-code'&&(engine.env.CLAUDE_CONFIG_DIR||locations['claude-code']))throw Error('自定义 Claude 目录暂不支持导入');
   if(tool==='gemini-cli'&&engine.env.GEMINI_CLI_HOME)throw Error('自定义 Gemini CLI 目录暂不支持导入');
   const base=tool==='opencode'?path.dirname((await engine.apiEngine.targets(tool))[0].file):tool==='pi'?path.dirname((await engine.apiEngine.targets(tool))[0].file):path.join(home,tool==='claude-code'?'.claude':'.gemini');
   const rows=[],candidates=new Map(),existing=await this.store.read();

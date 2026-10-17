@@ -23,7 +23,7 @@
   document.querySelector('.section-label').textContent = '工作空间';
   button('desktop-settings-button','shield','应用设置');button('user-guide-button','layers','使用方法');
   button('profiles-nav', 'layers', 'API / 套餐库'); button('all-nav', 'grid', '工具目录'); button('saved-nav', 'star', '已选工具');
-  button('agent-model-nav', 'terminal', 'Agent 模型');button('extension-center-nav','layers','扩展中心');
+  button('agent-model-nav', 'terminal', 'Agent 模型');button('extension-center-nav','layers','扩展中心');button('workspace-nav','grid','工作台');
   const header = document.querySelector('header'); header.lastElementChild.textContent = '本地工作空间';
   const note = document.querySelector('.notice'); note.firstElementChild.replaceWith(icon('shield'));
   document.querySelector('.intro .eyebrow').textContent = 'TOOLS / DISCOVERY';
@@ -37,10 +37,10 @@
   for (const child of [...pane.children].slice(2)) list.append(child);
   const help = document.createElement('aside'); help.className = 'connection-guide';
   const cap = document.createElement('div'); cap.className = 'guide-cap'; cap.append(icon('terminal'), document.createTextNode('配置工作流')); help.append(cap);
-  for (const [num, title, detail] of [['01', '添加模型服务', '填写接口地址、API Key 与模型 ID，或添加本地服务。'], ['02', '分配给工具', '选择 Claude Code、ZCode 等需要使用此连接的工具。'], ['03', '预览、备份与应用', '到 Agent 模型页应用 OpenCode / Pi / Reasonix Studio 配置。其他工具仍保存预设；异常操作到备份与恢复处理。']]) { const step = document.createElement('div'); step.className = 'guide-step'; const number = document.createElement('span'); number.textContent = num; const body = document.createElement('div'); const h = document.createElement('h3'); h.textContent = title; const p = document.createElement('p'); p.textContent = detail; body.append(h, p); step.append(number, body); help.append(step); }
+  for (const [num, title, detail] of [['01', '添加模型服务', '填写接口地址、API Key 与模型 ID，或添加本地服务。'], ['02', '分配给工具', '选择 Claude Code、ZCode 等需要使用此连接的工具。'], ['03', '预览、备份与应用', '到工作台预览并逐项应用，查看兼容性与未完成事项。各工具的实际适配范围以设置为准。']]) { const step = document.createElement('div'); step.className = 'guide-step'; const number = document.createElement('span'); number.textContent = num; const body = document.createElement('div'); const h = document.createElement('h3'); h.textContent = title; const p = document.createElement('p'); p.textContent = detail; body.append(h, p); step.append(number, body); help.append(step); }
   const security = document.createElement('div'); security.className = 'guide-security'; security.append(icon('shield')); const securityText = document.createElement('p'); securityText.textContent = '密钥由 Windows 加密保护，仅保存在当前用户目录。'; security.append(securityText); help.append(security);
   content.append(list, help); pane.append(content);
-  const bottom = document.querySelector('.aside-bottom'); bottom.replaceChildren(icon('shield')); const bottomText = document.createElement('span'); bottomText.textContent = '本机加密存储'; const version = document.createElement('small'); version.textContent = 'Starbridge 0.12.0 · Desktop'; bottomText.append(version); bottom.append(bottomText);
+  const bottom = document.querySelector('.aside-bottom'); bottom.replaceChildren(icon('shield')); const bottomText = document.createElement('span'); bottomText.textContent = '本机加密存储'; const version = document.createElement('small'); version.textContent = 'Starbridge 0.13.0 · Desktop'; bottomText.append(version); bottom.append(bottomText);
   const setNav = () => { document.querySelectorAll('.nav').forEach(b => { if (b.classList.contains('active')) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }); };
   const observer = new MutationObserver(setNav); document.querySelectorAll('.nav').forEach(b => observer.observe(b, { attributes: true, attributeFilter: ['class'] })); setNav();
   const scanButton = by('scan'); const polishScan = () => { const label = scanButton.textContent.includes('正在') ? '正在扫描…' : scanButton.textContent.includes('重新') ? '重新扫描' : '扫描本机'; if (scanButton.querySelector('svg') && scanButton.lastChild.textContent === label) return; scanButton.replaceChildren(icon('refresh'), document.createTextNode(label)); }; new MutationObserver(polishScan).observe(scanButton, { childList: true }); polishScan();

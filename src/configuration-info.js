@@ -1,6 +1,7 @@
 import path from 'node:path';
 import {resourceSupport} from './resource-store.js';
-export const writableTools=new Set(['opencode','pi','reasonix']);
+import {apiTools} from './compatibility.js';
+export const writableTools=new Set(apiTools);
 // Return path metadata only. Configuration text and credentials stay in the main process.
 export async function configurationInfo(catalog,engine){
  const locations=await engine.getLocations();

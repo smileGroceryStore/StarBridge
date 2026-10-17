@@ -12,6 +12,7 @@ export function goModelDetail(id) {
 }
 export const toolProtocols = {
   'claude-code': ['anthropic'], codex: ['openai-responses'], zcode: ['openai-chat', 'anthropic'],
+  'deepseek-harness':['openai-chat','openai-responses','anthropic'],
   reasonix:['openai-chat','openai-responses','anthropic'],
   pi: ['openai-chat','openai-responses','anthropic','gemini'], opencode: ['openai-chat','openai-responses','anthropic','gemini']
 };

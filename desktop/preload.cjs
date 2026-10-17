@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('allsetting', {
   scanExistingResources: input => ipcRenderer.invoke('resources-existing-scan',input),
   commitExistingResources: input => ipcRenderer.invoke('resources-existing-commit',input),
   pickSkillDirectory: () => ipcRenderer.invoke('resources-skill-directory'),
+  workspace: (operation,input) => ipcRenderer.invoke('workspace-'+operation,input),
   resources: () => ipcRenderer.invoke('resources-list'),
   saveResource: input => ipcRenderer.invoke('resources-save',input),
   deleteResource: input => ipcRenderer.invoke('resources-delete',input),

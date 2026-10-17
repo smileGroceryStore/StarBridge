@@ -2,11 +2,11 @@
 
 面向多设备、多 API 和 Coding Plan 的本地 AI 工具配置中心。
 
-当前阶段：v0.12 Windows 桌面应用。支持工具扫描、加密连接库、独立模型预设、OpenCode / Pi / Reasonix Studio 配置预览与应用、启动异常恢复、备份管理、连接检查和密码加密迁移。扩展中心可集中管理并分配 MCP、完整 Skills 和提示词；API 连接与共享资源的适配范围分别列出。
+当前阶段：v0.13 Windows 桌面应用。支持工具扫描、加密连接库、独立模型预设、OpenCode / Pi / Reasonix Studio 配置预览与应用、启动异常恢复、备份管理、连接检查和密码加密迁移。扩展中心可集中管理并分配 MCP、完整 Skills 和提示词；API 连接与共享资源的适配范围分别列出。
 
 ## 运行
 
-普通用户：运行 `release/Starbridge-Setup-0.12.0-x64.exe` 安装，通过桌面或开始菜单的 星桥 Starbridge 快捷方式启动。安装包自带运行环境，不需要 Node，不会打开浏览器，也不会启动 HTTP 服务。可在 Windows 已安装的应用中卸载。
+普通用户：运行 `release/Starbridge-Setup-0.13.0-x64.exe` 安装，通过桌面或开始菜单的 星桥 Starbridge 快捷方式启动。安装包自带运行环境，不需要 Node，不会打开浏览器，也不会启动 HTTP 服务。可在 Windows 已安装的应用中卸载。
 
 开发：需要 Node.js 22 或更高版本，先 `npm ci`，再执行 `npm start` 打开桌面窗口。`npm run dist:win` 生成 Windows x64 安装包。`npm run start:web` 仅保留为开发调试入口。
 
@@ -61,10 +61,19 @@ v0.12：[扩展资源恢复、原有配置导入、逐文件差异和完整 Skil
 
 | 能力 | 已支持工具 |
 | --- | --- |
-| API / 模型配置写入 | OpenCode、Pi、Reasonix Studio |
+| API / 模型配置写入 | OpenCode、Pi、Reasonix Studio、Claude Code、Codex、Harness（已有原生 Go desktop 配置） |
 | 共享 MCP | OpenCode、Claude Code、Gemini CLI |
 | 共享 Skills / 提示词 | OpenCode、Pi、Claude Code、Gemini CLI |
 | 导入原有全局资源 | OpenCode、Pi、Claude Code、Gemini CLI（按对应资源能力） |
 | 本机会话 / 用量日志 | Codex、Claude Code、Pi、Gemini CLI |
 
 资源操作入口：扩展中心 → MCP / Skills / 提示词。误删后点「删除恢复」；迁入现有资源点「从工具导入」；完整 Skill 在编辑窗口点「选择完整 Skill 目录」。导入、恢复默认停用且未分配，需启用分配并逐工具预览同步。
+
+
+## 最新正式版
+
+[下载 Windows x64 安装包](https://github.com/smileGroceryStore/StarBridge/releases/latest) · [v0.13 更新与使用说明](docs/release-v0.13.md)
+
+工作台统一展示待同步、已同步、外部变化和恢复事项，支持逐项预览与批量应用、完整加密迁移、脱敏诊断、更新检查和可设置保留期限的备份清理。安装包附 SHA256SUMS，可校验下载完整性；当前未配置代码签名。
+
+发布者：`python tools/publish-release.py --tag v0.13.0 --notes docs/release-v0.13.md --asset release/Starbridge-Setup-0.13.0-x64.exe --asset release/SHA256SUMS --publish`，使用 Git 现有 GitHub 凭据，不把 Token 写入文件或输出。

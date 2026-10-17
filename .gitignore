@@ -15,3 +15,6 @@ Thumbs.db
 
 docs/*.png
 docs/go-import-result.json
+
+__pycache__/
+*.pyc
