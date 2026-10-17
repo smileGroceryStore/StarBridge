@@ -25,11 +25,15 @@ else {
     const {ResourceStore}=await import('../src/resource-store.js');const{ResourceEngine}=await import('../src/resource-engine.js');
     const resourceStore=new ResourceStore(path.join(app.getPath('userData'),'shared-resources.enc'),encryptedStore.crypto);
     const resourceEngine=new ResourceEngine({apiEngine:configEngine,store:resourceStore});
+    const{ResourceImporter}=await import('../src/resource-import.js');const resourceImporter=new ResourceImporter(resourceEngine,resourceStore);let pendingSkillBundle=null;
     const{sessionIndex,authOverview}=await import('../src/session-index.js');let indexedSessions=null;
     const {checkConnection}=await import('../src/connection-check.js');const {encryptPortable,decryptPortable}=await import('../src/portable.js');
     let pendingImport=null;
     const extraOps={
-      'resources-list':()=>resourceStore.list(),'resources-save':input=>resourceStore.save(input),'resources-delete':input=>resourceStore.remove(input.id),
+      'resources-list':()=>resourceStore.list(),'resources-save':async input=>{let data=input;if(input.bundleId){if(input.kind!=='skill'||!pendingSkillBundle||input.bundleId!==pendingSkillBundle.id||Date.now()-pendingSkillBundle.created>600000)throw Error('Skill 目录预览过期，请重新选择');data={...input,files:pendingSkillBundle.bundle.files,metadata:pendingSkillBundle.bundle.metadata};}const result=await resourceStore.save(data);pendingSkillBundle=null;return result;},'resources-delete':input=>resourceStore.remove(input.id),
+      'resources-backups':()=>resourceStore.backups(),'resources-backup-restore':input=>resourceStore.restoreBackup(input.id,input.ids),
+      'resources-existing-scan':input=>resourceImporter.scan(input.toolId),'resources-existing-commit':input=>resourceImporter.commit(input.id,input.ids),
+      'resources-skill-directory':async()=>{const selected=await dialog.showOpenDialog(mainWindow,{title:'选择包含 SKILL.md 的 Skill 目录',properties:['openDirectory']});if(selected.canceled)return{canceled:true};const{readSkillDirectory}=await import('../src/skill-bundle.js');const bundle=await readSkillDirectory(selected.filePaths[0]);resourceStore.validateItems([{kind:'skill',...bundle}]);const id=require('node:crypto').randomUUID();pendingSkillBundle={id,bundle,created:Date.now()};return{id,name:bundle.name,description:bundle.description,content:bundle.content,fileNames:bundle.files.map(f=>f.path),size:bundle.files.reduce((n,f)=>n+f.size,0)};},
       'resources-preview':input=>resourceEngine.preview('asset-'+input.toolId),'resources-apply':input=>resourceEngine.apply(input.id),'resources-restore':input=>resourceEngine.restore('asset-'+input.toolId),
       'resources-status':async()=>Promise.all(resourceEngine.supportedTools.map(async id=>{try{return await resourceEngine.status(id);}catch{return{toolId:id,status:'error',message:'共享资源状态检查失败'};}})),
       'sessions-index':async()=>{indexedSessions=await sessionIndex(configEngine.home,await configEngine.getLocations());return indexedSessions;},
@@ -237,7 +241,22 @@ else {
         await mainWindow.webContents.executeJavaScript(`new Promise((resolve,reject)=>{const end=Date.now()+10000;const check=()=>{if(!document.getElementById('extension-message').textContent&&document.getElementById('extension-content').children.length)resolve();else if(Date.now()>end)reject(Error('Extension ${tab} failed'));else setTimeout(check,100)};check()})`);
       }
       await mainWindow.webContents.executeJavaScript(`window.starbridgeExtensions.switchTab('mcp')`);await new Promise(r=>setTimeout(r,200));require('node:fs').writeFileSync(path.join(app.getPath('temp'),'starbridge-v011-extensions.png'),(await mainWindow.capturePage(undefined,{stayHidden:false,stayAwake:true})).toPNG());
-      require('node:fs').writeFileSync(path.join(app.getPath('temp'),'starbridge-extension-test.json'),JSON.stringify({sharedResources:(await resourceStore.list()).items.length,sessions:(await sessionIndex(configEngine.home)).sessions.length,application:'applied-and-restored',centers:6}));
+      // Exercise the recovery and native-import UI against the isolated fixture home.
+      const removedResource=(await resourceStore.read()).items.find(i=>i.kind==='prompt');await resourceStore.remove(removedResource.id);
+      await mainWindow.webContents.executeJavaScript(`document.getElementById('extension-backups').click()`);
+      await mainWindow.webContents.executeJavaScript(`new Promise((resolve,reject)=>{const end=Date.now()+10000;const check=()=>{if(document.querySelector('#resource-library-rows input:checked:not(:disabled)'))resolve();else if(Date.now()>end)reject(Error('Resource recovery list missing'));else setTimeout(check,100)};check()})`);
+      await mainWindow.webContents.executeJavaScript(`document.getElementById('resource-library-confirm').click()`);
+      await mainWindow.webContents.executeJavaScript(`new Promise((resolve,reject)=>{const end=Date.now()+10000;const check=()=>{if(!document.getElementById('resource-library-close').closest('dialog').open)resolve();else if(Date.now()>end)reject(Error('Resource recovery UI failed'));else setTimeout(check,100)};check()})`);
+      const recoveredResource=(await resourceStore.read()).items.find(i=>i.id===removedResource.id);if(!recoveredResource||recoveredResource.enabled||recoveredResource.tools.length)throw Error('Unsafe resource recovery defaults');
+      const nativeGeminiFile=path.join(configEngine.home,'.gemini/settings.json');await configEngine.write(nativeGeminiFile,JSON.stringify({mcpServers:{nativeFixture:{command:'native-fixture-never-executed',env:{API_KEY:'private-native-import-fixture'}}}}));
+      await mainWindow.webContents.executeJavaScript(`document.getElementById('extension-existing').click();([...document.querySelectorAll('#resource-library-sources button')].find(b=>b.textContent==='Gemini CLI')).click()`);
+      await mainWindow.webContents.executeJavaScript(`new Promise((resolve,reject)=>{const end=Date.now()+10000;const check=()=>{if(document.querySelector('#resource-library-rows input:checked')&&!document.getElementById('resource-library-confirm').disabled)resolve();else if(Date.now()>end)reject(Error('Native resource scan UI failed'));else setTimeout(check,100)};check()})`);
+      if(await mainWindow.webContents.executeJavaScript(`document.getElementById('resource-library-rows').textContent.includes('private-native-import-fixture')`))throw Error('Native import preview leaked credential');
+      require('node:fs').writeFileSync(path.join(app.getPath('temp'),'starbridge-v012-import.png'),(await mainWindow.capturePage(undefined,{stayHidden:false,stayAwake:true})).toPNG());
+      await mainWindow.webContents.executeJavaScript(`document.getElementById('resource-library-confirm').click()`);
+      await mainWindow.webContents.executeJavaScript(`new Promise((resolve,reject)=>{const end=Date.now()+10000;const check=()=>{if(!document.getElementById('resource-library-close').closest('dialog').open)resolve();else if(Date.now()>end)reject(Error('Native import commit UI failed'));else setTimeout(check,100)};check()})`);
+      if(!(await resourceStore.read()).items.some(i=>i.name==='nativeFixture'&&!i.enabled&&!i.tools.length))throw Error('Native import defaults incorrect');
+      require('node:fs').writeFileSync(path.join(app.getPath('temp'),'starbridge-extension-test.json'),JSON.stringify({sharedResources:(await resourceStore.list()).items.length,sessions:(await sessionIndex(configEngine.home)).sessions.length,application:'applied-and-restored',centers:6,resourceRecovery:true,nativeImport:true}));
       mainWindow.setSize(960,700);
       const dialogChecks=await mainWindow.webContents.executeJavaScript(`(async()=>{
         const results=[];

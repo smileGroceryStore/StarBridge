@@ -2,11 +2,11 @@
 
 面向多设备、多 API 和 Coding Plan 的本地 AI 工具配置中心。
 
-当前阶段：v0.11 Windows 桌面应用。支持工具扫描、加密连接库、独立模型预设、OpenCode / Pi / Reasonix Studio 配置预览与应用、启动异常恢复、备份管理、连接检查和密码加密迁移。其他工具暂保留模型预设，尚不写入配置。
+当前阶段：v0.12 Windows 桌面应用。支持工具扫描、加密连接库、独立模型预设、OpenCode / Pi / Reasonix Studio 配置预览与应用、启动异常恢复、备份管理、连接检查和密码加密迁移。扩展中心可集中管理并分配 MCP、完整 Skills 和提示词；API 连接与共享资源的适配范围分别列出。
 
 ## 运行
 
-普通用户：运行 `release/Starbridge-Setup-0.11.1-x64.exe` 安装，通过桌面或开始菜单的 星桥 Starbridge 快捷方式启动。安装包自带运行环境，不需要 Node，不会打开浏览器，也不会启动 HTTP 服务。可在 Windows 已安装的应用中卸载。
+普通用户：运行 `release/Starbridge-Setup-0.12.0-x64.exe` 安装，通过桌面或开始菜单的 星桥 Starbridge 快捷方式启动。安装包自带运行环境，不需要 Node，不会打开浏览器，也不会启动 HTTP 服务。可在 Windows 已安装的应用中卸载。
 
 开发：需要 Node.js 22 或更高版本，先 `npm ci`，再执行 `npm start` 打开桌面窗口。`npm run dist:win` 生成 Windows x64 安装包。`npm run start:web` 仅保留为开发调试入口。
 
@@ -22,7 +22,7 @@
 - [CC Switch 源码评估与技术决策](docs/architecture.md)
 - [第一版开发范围与验收](docs/mvp.md)
 - `catalog/tools.json`：机器可读的候选工具目录。
-- `research/cc-switch-snapshot/`：2026-10-17 下载的上游源码样本，许可证保留在同目录。不是可编译的完整仓库。
+- 上游研究快照、本机数据、操作截图、依赖和安装包不进入 Git 仓库。安装包在本机 `release/` 生成。
 
 应用配置前会显示脱敏差异并保存系统加密备份；发现外部修改会阻止覆盖。模型测试由用户主动触发，可能消耗额度。开发与安装验证使用临时配置目录，未修改真实 Agent 配置。
 
@@ -55,3 +55,16 @@ v0.10.4：全部弹窗采用固定关闭区、内容独立滚动和底部操作�
 
 
 v0.11：新增「扩展中心」：共享 MCP / Skills / 提示词、会话索引、连接授权状态和日志用量统计。共享资源一次编辑，按兼容工具分配并分别预览应用。详见 [支持范围与使用说明](docs/release-v0.11.md)。
+
+
+v0.12：[扩展资源恢复、原有配置导入、逐文件差异和完整 Skill 目录](docs/release-v0.12.md)。新增 Gemini CLI 资源同步、资源导入及 JSON / JSONL 会话用量来源。
+
+| 能力 | 已支持工具 |
+| --- | --- |
+| API / 模型配置写入 | OpenCode、Pi、Reasonix Studio |
+| 共享 MCP | OpenCode、Claude Code、Gemini CLI |
+| 共享 Skills / 提示词 | OpenCode、Pi、Claude Code、Gemini CLI |
+| 导入原有全局资源 | OpenCode、Pi、Claude Code、Gemini CLI（按对应资源能力） |
+| 本机会话 / 用量日志 | Codex、Claude Code、Pi、Gemini CLI |
+
+资源操作入口：扩展中心 → MCP / Skills / 提示词。误删后点「删除恢复」；迁入现有资源点「从工具导入」；完整 Skill 在编辑窗口点「选择完整 Skill 目录」。导入、恢复默认停用且未分配，需启用分配并逐工具预览同步。
