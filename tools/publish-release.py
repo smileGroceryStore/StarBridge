@@ -63,14 +63,14 @@ def request(method, url, body=None, content_type='application/json'):
 
 base = 'https://api.github.com/repos/' + repo
 releases = request('GET', base + '/releases?per_page=30')
-release = next((r for r in releases if r['tag_name'] == args.tag), None)
+release = next((r for r in releases if r['tag_name'] == args.tag or r.get('name') == '星桥 Starbridge ' + args.tag), None)
 notes = pathlib.Path(args.notes).read_text(encoding='utf-8-sig')
-if release and not release['draft']:
+if release and not release['draft'] and not release['tag_name'].startswith('untagged-'):
     raise SystemExit('This tag is already published; use a new version')
 if not release:
     release = request('POST', base + '/releases', {'tag_name': args.tag, 'target_commitish': commit, 'name': '星桥 Starbridge ' + args.tag, 'body': notes, 'draft': True, 'prerelease': False})
 else:
-    release = request('PATCH', base + '/releases/' + str(release['id']), {'body': notes})
+    release = request('PATCH', base + '/releases/' + str(release['id']), {'body': notes, 'tag_name': args.tag, 'target_commitish': commit})
 for file in assets:
     content = file.read_bytes()
     digest = 'sha256:' + hashlib.sha256(content).hexdigest()
@@ -85,5 +85,5 @@ for file in assets:
         raise RuntimeError('Uploaded asset digest or size mismatch; draft remains unpublished')
     print(json.dumps({'asset': file.name, 'bytes': asset['size'], 'digestVerified': asset.get('digest') == digest}))
 if args.publish:
-    release = request('PATCH', base + '/releases/' + str(release['id']), {'draft': False, 'make_latest': 'true'})
+    release = request('PATCH', base + '/releases/' + str(release['id']), {'draft': False, 'make_latest': 'true', 'tag_name': args.tag, 'target_commitish': commit})
 print(json.dumps({'url': release['html_url'], 'draft': release['draft'], 'commit': commit}))
