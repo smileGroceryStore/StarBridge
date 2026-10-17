@@ -10,7 +10,7 @@ export function analyzeGeminiSession(text,file,mtime){
   // Token patches are supported without retaining conversation text or tool output.
   if(e.$patch){for(const p of [e.$patch,...(Array.isArray(e.$patch.updates)?e.$patch.updates:[])])if(p?.id&&p.tokens&&messages.has(p.id))messages.set(p.id,{...messages.get(p.id),tokens:p.tokens});}
  }
- let input=0,output=0,cache=0;const models=new Set();
- for(const m of messages.values()){if(typeof m.model==='string')models.add(m.model);input+=n(m.tokens?.input);output+=n(m.tokens?.output)+n(m.tokens?.thoughts);cache+=n(m.tokens?.cached);}
- return{id:createHash('sha256').update(file).digest('hex').slice(0,24),tool:'gemini-cli',title:path.basename(file),path:file,updatedAt:new Date(mtime).toISOString(),models:[...models],input,output,cache,cost:null,records:entries.length,partial};
+ let input=0,output=0,cache=0;const models=new Set(),usageDetails=[];
+ for(const m of messages.values()){if(m.tokens)usageDetails.push({model:m.model??'',provider:'google',input:Math.max(0,n(m.tokens.input)-n(m.tokens.cached)),output:n(m.tokens.output)+n(m.tokens.thoughts),cacheRead:n(m.tokens.cached),cacheWrite:0,invalid:n(m.tokens.cached)>n(m.tokens.input)||![m.tokens.input,m.tokens.output,m.tokens.thoughts??0,m.tokens.cached??0].every(v=>Number.isSafeInteger(v)&&v>=0)});if(typeof m.model==='string')models.add(m.model);input+=n(m.tokens?.input);output+=n(m.tokens?.output)+n(m.tokens?.thoughts);cache+=n(m.tokens?.cached);}
+ return{id:createHash('sha256').update(file).digest('hex').slice(0,24),tool:'gemini-cli',title:path.basename(file),path:file,updatedAt:new Date(mtime).toISOString(),models:[...models],usageDetails,input,output,cache,cost:null,records:entries.length,partial};
 }
