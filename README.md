@@ -1,79 +1,85 @@
-# 星桥 Starbridge
+# 星桥 StarBridge · AI 编程工具配置管理器
 
-面向多设备、多 API 和 Coding Plan 的本地 AI 工具配置中心。
+**一次配置 API Key / Coding Plan，按需分配给多个 AI 编程工具。**
 
-当前阶段：v0.13 Windows 桌面应用。支持工具扫描、加密连接库、独立模型预设、OpenCode / Pi / Reasonix Studio 配置预览与应用、启动异常恢复、备份管理、连接检查和密码加密迁移。扩展中心可集中管理并分配 MCP、完整 Skills 和提示词；API 连接与共享资源的适配范围分别列出。
+**Configure once, use across AI coding agents.** StarBridge is a local Windows desktop configuration manager for Claude Code, Codex, OpenCode, Pi, Reasonix Studio and DeepSeek Harness, with shared MCP servers, Agent Skills, prompts, encrypted migration and rollback.
 
-## 运行
+[下载 Windows 安装包](https://github.com/smileGroceryStore/StarBridge/releases/latest) · [实际支持范围](#实际支持范围) · [快速开始](#快速开始) · [参与贡献](CONTRIBUTING.md) · [报告问题](https://github.com/smileGroceryStore/StarBridge/issues)
 
-普通用户：运行 `release/Starbridge-Setup-0.13.0-x64.exe` 安装，通过桌面或开始菜单的 星桥 Starbridge 快捷方式启动。安装包自带运行环境，不需要 Node，不会打开浏览器，也不会启动 HTTP 服务。可在 Windows 已安装的应用中卸载。
+[![CI](https://github.com/smileGroceryStore/StarBridge/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/smileGroceryStore/StarBridge/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/smileGroceryStore/StarBridge)](https://github.com/smileGroceryStore/StarBridge/releases/latest)
+[![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D4)](https://github.com/smileGroceryStore/StarBridge/releases/latest)
 
-开发：需要 Node.js 22 或更高版本，先 `npm ci`，再执行 `npm start` 打开桌面窗口。`npm run dist:win` 生成 Windows x64 安装包。`npm run start:web` 仅保留为开发调试入口。
+## 为什么使用星桥
 
-`npm test` 运行核心与本地服务测试；`npm run scan` 在终端输出只读扫描结果，结果包含本机路径，请自行决定是否分享。
+换设备、更换 API Key 或 Coding Plan 时，不用在每个工具里分别维护同一份连接。星桥集中保存服务来源，给各工具独立选择默认模型和可选模型，再预览、备份并应用。
 
-当前提供：31 项工具目录、名称搜索、类型与状态筛选、选择工具、检测证据详情、手动可执行文件路径、官方项目入口。选择与手动路径保存在桌面应用本地。迁移包只迁移连接库与模型预设，不迁移本机工具安装路径。
+- **API / 套餐库**：集中维护 API Key、接口、协议、模型和多个服务来源。
+- **配置工作台**：查看待同步、已同步、外部变化和未完成操作，逐项预览或批量应用。
+- **共享 MCP、Skills、提示词**：维护一份来源，分配给兼容工具；支持完整 Skill 目录及脚本、附件。
+- **导入与完整迁移**：读取工具现有明确配置；通过密码加密包迁移连接、模型预设及共享资源。
+- **备份与恢复**：系统加密保存本机库和备份，提供删除恢复、失败回滚及异常退出后的恢复检查。
+- **会话、授权与用量**：索引受支持工具的本机日志，展示凭据来源与日志报告用量。
 
-扫描范围：PATH、部分 Windows 常见应用位置、当前用户配置痕迹和编辑器扩展清单。未扫描注册表、WSL、自定义扩展目录或全部磁盘；未发现不代表未安装。命令路径只标记安装候选，不执行或读取其内容。配置目录仅检查是否存在。
+## 实际支持范围
 
-桌面使用 Electron，加载应用内文件，以受限 IPC 调用扫描和文件选择功能。界面采用原生 HTML/CSS/JavaScript。当前安装包未配置代码签名证书。
-
-- [工具兼容性清单](docs/compatibility.md)
-- [CC Switch 源码评估与技术决策](docs/architecture.md)
-- [第一版开发范围与验收](docs/mvp.md)
-- `catalog/tools.json`：机器可读的候选工具目录。
-- 上游研究快照、本机数据、操作截图、依赖和安装包不进入 Git 仓库。安装包在本机 `release/` 生成。
-
-应用配置前会显示脱敏差异并保存系统加密备份；发现外部修改会阻止覆盖。模型测试由用户主动触发，可能消耗额度。开发与安装验证使用临时配置目录，未修改真实 Agent 配置。
-
-详见 [v0.7 更新与验证](docs/release-v0.7.md)。
-
-
-
-
-
-v0.7.1：连接卡片支持删除，确认受影响工具后移除连接及引用；删除前自动备份加密库，不改动真实 Agent 文件。17 项测试与复制删除桌面流程通过。
-
-当前更新：[v0.8 更新与恢复机制](docs/release-v0.8.md)。
-
-当前更新：[v0.9 后台运行与多连接](docs/release-v0.9.md)。关闭窗口默认进入托盘；彻底退出请用托盘菜单或应用设置。开机启动默认关闭。
-
-v0.9.1：侧栏「使用方法」和 Agent 页快捷帮助，说明工具、连接、模型、预设与应用的区别，以及完整配置步骤。
-
-v0.10：新增 Reasonix Studio 写入、备份和恢复适配，支持 Chat / Anthropic / Responses，更新检测、协议筛选与使用说明。详见 [更新说明](docs/release-v0.10.md)。
-
-v0.10.1：相同配置重复应用保留原恢复点，Reasonix 重复生成保持原格式，非 UTF-8 文件停止写入。详见 [排查与验证](docs/release-v0.10.1.md)。
-
-
-v0.10.2：Reasonix OpenCode Go 使用官方兼容路由，使原生引擎自动提供会话标识。详见 [Go 会话兼容修复](docs/release-v0.10.2.md)。
-
-
-v0.10.3：应用设置展示全部工具的配置支持状态，已支持工具显示实际目录及文件名，待适配工具可搜索并查看官方入口。
-
-
-v0.10.4：全部弹窗采用固定关闭区、内容独立滚动和底部操作区，长页面无需滚回顶部关闭。
-
-
-v0.11：新增「扩展中心」：共享 MCP / Skills / 提示词、会话索引、连接授权状态和日志用量统计。共享资源一次编辑，按兼容工具分配并分别预览应用。详见 [支持范围与使用说明](docs/release-v0.11.md)。
-
-
-v0.12：[扩展资源恢复、原有配置导入、逐文件差异和完整 Skill 目录](docs/release-v0.12.md)。新增 Gemini CLI 资源同步、资源导入及 JSON / JSONL 会话用量来源。
-
-| 能力 | 已支持工具 |
+| 能力 | 支持的工具 |
 | --- | --- |
-| API / 模型配置写入 | OpenCode、Pi、Reasonix Studio、Claude Code、Codex、Harness（已有原生 Go desktop 配置） |
+| 工具目录与只读发现 | 收录 31 项工具；目录收录不代表支持配置写入 |
+| API / 默认模型写入 | OpenCode、Pi、Reasonix Studio、Claude Code、Codex |
+| Harness API / 模型写入 | 仅已有 desktop profile 的原生 OpenCode Go 配置 |
 | 共享 MCP | OpenCode、Claude Code、Gemini CLI |
 | 共享 Skills / 提示词 | OpenCode、Pi、Claude Code、Gemini CLI |
-| 导入原有全局资源 | OpenCode、Pi、Claude Code、Gemini CLI（按对应资源能力） |
+| 导入现有 API 连接 | 六项 API 适配器中可识别的静态连接；OAuth、命令授权及未知结构不自动转换 |
+| 导入现有全局资源 | OpenCode、Pi、Claude Code、Gemini CLI，按对应资源能力 |
 | 本机会话 / 用量日志 | Codex、Claude Code、Pi、Gemini CLI |
 
-资源操作入口：扩展中心 → MCP / Skills / 提示词。误删后点「删除恢复」；迁入现有资源点「从工具导入」；完整 Skill 在编辑窗口点「选择完整 Skill 目录」。导入、恢复默认停用且未分配，需启用分配并逐工具预览同步。
+Claude Code 接入 Anthropic 兼容协议，Codex 接入 Responses 协议。具体版本、套餐权限和代理的会话头转发仍需在原工具验证。**文件已同步不等于模型实际调用已验证。**
 
+## 快速开始
 
-## 最新正式版
+1. 从 [GitHub Releases](https://github.com/smileGroceryStore/StarBridge/releases/latest) 下载 Windows x64 安装包，附带的 `SHA256SUMS` 可用于校验文件。
+2. 安装后通过桌面或开始菜单的「星桥 Starbridge」启动，无需 Node.js，不会打开网页。
+3. 在「API / 套餐库」添加连接，或从已配置的工具导入。
+4. 到「Agent 模型」给工具选择连接、默认模型和可选模型。
+5. 在「工作台」检查兼容性与差异，备份并应用；回到原工具新开会话验证。
 
-[下载 Windows x64 安装包](https://github.com/smileGroceryStore/StarBridge/releases/latest) · [v0.13 更新与使用说明](docs/release-v0.13.md)
+共享资源在「扩展中心」添加或导入，启用并分配后逐工具同步。完整迁移、更新检查和脱敏诊断位于工作台。关闭窗口默认进入系统托盘；彻底退出请使用托盘菜单或应用设置。
 
-工作台统一展示待同步、已同步、外部变化和恢复事项，支持逐项预览与批量应用、完整加密迁移、脱敏诊断、更新检查和可设置保留期限的备份清理。安装包附 SHA256SUMS，可校验下载完整性；当前未配置代码签名。
+## 配置与数据
 
-发布者：`python tools/publish-release.py --tag v0.13.0 --notes docs/release-v0.13.md --asset release/Starbridge-Setup-0.13.0-x64.exe --asset release/SHA256SUMS --publish`，使用 Git 现有 GitHub 凭据，不把 Token 写入文件或输出。
+- Windows 桌面应用，基于 Electron 和原生 HTML / CSS / JavaScript；当前发布包没有代码签名。
+- 星桥的连接库、资源库和备份使用系统加密；工具要求的密钥仍会写入目标工具的本机配置。
+- 只有主动点击模型测试才会发送短测试请求，可能消耗额度；保存、扫描和同步不自动发起推理请求。
+- 迁入的连接与共享资源默认停用；现有工具预设不覆盖，本机安装和配置目录不迁移。
+- 遇到外部修改或无法识别的格式会停止覆盖；恢复及备份清理均有明确入口。
+- OAuth 登录、工具安装、历史对话不包含在完整迁移包内。日志用量不代表服务商账单或套餐余额。
+
+## 本地开发
+
+需要 Node.js 22 或更新版本；CI 使用 Node.js 24。
+
+```powershell
+npm ci
+npm test
+npm start
+```
+
+```powershell
+npm run dist:win   # 生成 Windows x64 安装包，输出到 release/
+npm run scan       # 本机只读发现，输出包含本机路径
+```
+
+桌面加载应用内文件，使用受限 IPC。`npm run start:web` 仅保留为开发调试入口。依赖、安装包、研究快照和本机数据不进入 Git 仓库。
+
+## 开发与合并规则
+
+`main` 为受保护的稳定分支：通过 PR、通过 `Core tests`、解决审核讨论后使用 Squash merge；禁止直接推送、强推和删除，管理员同样适用。当前不强制第二位审核者，便于单人维护。详见 [贡献指南](CONTRIBUTING.md)。
+
+## 文档
+
+- [v0.13：工作台、兼容性、批量应用、完整迁移与维护](docs/release-v0.13.md)
+- [v0.12：资源恢复、现有资源导入与完整 Skills](docs/release-v0.12.md)
+- [工具兼容性目录](docs/compatibility.md)
+- [架构与上游研究](docs/architecture.md)
+- [历史更新说明](docs/)
