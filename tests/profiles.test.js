@@ -1,0 +1,25 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { ProfileStore } from '../src/profile-store.js';
+import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+test('encrypted profiles preserve keys on edit, serialize writes, and support bindings', async t => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'allsetting-profiles-')); t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const key = randomBytes(32);
+  const crypto = { encrypt: text => { const iv = randomBytes(12), c = createCipheriv('aes-256-gcm', key, iv); const data = Buffer.concat([c.update(text), c.final()]); return Buffer.concat([iv, c.getAuthTag(), data]); }, decrypt: bytes => { const d = createDecipheriv('aes-256-gcm', key, bytes.subarray(0, 12)); d.setAuthTag(bytes.subarray(12, 28)); return Buffer.concat([d.update(bytes.subarray(28)), d.final()]).toString(); } };
+  const file = path.join(root, 'profiles.enc'), store = new ProfileStore(file, crypto, ['claude', 'pi']);
+  const input = { name: '套餐', vendor: 'Example', baseUrl: 'https://example.com/v1', protocol: 'openai-chat', billing: 'coding-plan', key: 'fake-secret-123', models: ['test-model'], notes: '', enabled: true };
+  const saved = await store.save(input), id = saved.profiles[0].id;
+  assert.equal(saved.profiles[0].key, undefined); assert.equal(saved.profiles[0].hasKey, true);
+  assert.ok(!(await fs.readFile(file)).includes(Buffer.from('fake-secret-123')));
+  await store.save({ ...input, id, key: '', name: '已编辑' }); assert.equal((await store.read()).profiles[0].key, 'fake-secret-123');
+  await Promise.all([store.bind(id, ['claude']), store.toggle(id, false)]);
+  assert.equal((await store.list()).bindings.claude, id);
+  await assert.rejects(store.bind(id, ['pi']), /启用/);
+  await store.toggle(id, true); await store.bind(id, ['pi']); assert.deepEqual((await store.list()).bindings, { pi: id });
+  assert.throws(() => store.save({ ...input, baseUrl: 'http://example.com' }), /HTTPS/);
+  assert.throws(() => store.bind(id, ['unknown']), /无效/);
+  await fs.writeFile(file, 'corrupt'); await assert.rejects(store.list(), /损坏/);
+});

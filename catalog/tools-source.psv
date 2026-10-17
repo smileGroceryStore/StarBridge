@@ -1,0 +1,32 @@
+id|name|kind|source|verification|priority
+claude-code|Claude Code|cli|https://code.claude.com/docs/en/settings|candidate|1
+codex|Codex|cli|https://github.com/openai/codex|candidate|2
+gemini-cli|Gemini CLI|cli|https://github.com/google-gemini/gemini-cli|identity-checked|2
+opencode|OpenCode|cli|https://docs.opencode.ai/docs/config/|configuration-documented|1
+pi|Pi|cli|https://github.com/earendil-works/pi|identity-checked|2
+kimi-code|Kimi Code CLI|cli|https://github.com/MoonshotAI/kimi-code|identity-checked|2
+deepseek-harness|DeepSeek Harness|cli|https://github.com/deepseek-ai/deepseek-harness|identity-checked|2
+qwen-code|Qwen Code|cli|https://github.com/QwenLM/qwen-code|identity-checked|2
+aider|Aider|cli|https://github.com/Aider-AI/aider|identity-checked|2
+goose|Goose|agent|https://github.com/aaif-goose/goose|identity-checked|3
+zcode|ZCode (Z.ai)|desktop|https://zcode.z.ai/cn/docs/configuration|configuration-documented|1
+cline|Cline|extension|https://docs.cline.bot/provider-config/openai-compatible|configuration-documented|2
+continue|Continue|extension|https://docs.continue.dev/customize/model-providers/overview|configuration-documented|2
+roo-code|Roo Code|extension|https://github.com/RooCodeInc/Roo-Code|candidate|3
+kilo-code|Kilo Code|extension|https://github.com/Kilo-Org/kilocode|candidate|3
+openhands|OpenHands|agent|https://github.com/OpenHands/OpenHands|candidate|3
+hermes|Hermes Agent|agent|https://github.com/NousResearch/hermes-agent|candidate|3
+openclaw|OpenClaw|agent|https://github.com/openclaw/openclaw|candidate|3
+cursor|Cursor|editor|https://cursor.com|candidate|3
+windsurf|Windsurf|editor|https://windsurf.com|candidate|3
+trae|Trae|editor|https://www.trae.ai|candidate|3
+qoder|Qoder|editor|https://qoder.com|candidate|3
+zed|Zed|editor|https://zed.dev|candidate|3
+vscode|Visual Studio Code|editor-host|https://code.visualstudio.com|candidate|3
+vscodium|VSCodium|editor-host|https://vscodium.com|candidate|3
+jetbrains|JetBrains IDEs|editor-host|https://www.jetbrains.com|candidate|3
+copilot|GitHub Copilot|extension|https://github.com/features/copilot|candidate|3
+amp|Amp|agent|https://ampcode.com|candidate|3
+droid|Droid (Factory)|agent|https://factory.ai|candidate|3
+minimax-code|MiniMax Code|agent||identity-pending|3
+reasonix|Reasonix|unknown||identity-pending|3

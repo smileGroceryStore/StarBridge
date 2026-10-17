@@ -1,0 +1,19 @@
+import {validateModelResponse} from './response-validation.js';
+import {checkFingerprint} from './profile-store.js';
+import {randomUUID} from 'node:crypto';import {modelFor} from './model-catalog.js';
+export async function checkConnection(store,input,fetcher=fetch){
+ if(!input||!['address','model'].includes(input.mode))throw Error('检查类型无效');const p=(await store.read()).profiles.find(p=>p.id===input.id);if(!p||!p.enabled)throw Error('请先启用连接');
+ const fingerprint=checkFingerprint(p);const model=input.model??p.models[0];if((input.mode==='model'||input.model)&&!p.models.includes(model))throw Error('模型不在此连接中');const d=p.models.includes(model)?modelFor(p,model):p;
+ const url=new URL(d.baseUrl);if(url.username||url.password||url.search||url.hash||!(url.protocol==='https:'||(url.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(url.hostname))))throw Error('不安全的接口地址');
+ let target=d.baseUrl.replace(/\/$/,''),options={method:'GET',redirect:'error',signal:AbortSignal.timeout(20000),headers:{'user-agent':'Starbridge/0.9.0 (coding-agent configuration check)'}};
+ if(input.mode==='model'){
+  options.method='POST';options.headers['content-type']='application/json';options.headers['x-opencode-session']=randomUUID();
+  if(d.protocol==='openai-chat'){target+='/chat/completions';options.headers.authorization=`Bearer ${p.key}`;options.body=JSON.stringify({model,messages:[{role:'user',content:'Reply OK to verify this coding agent connection.'}],max_tokens:16});}
+  else if(d.protocol==='openai-responses'){target+='/responses';options.headers.authorization=`Bearer ${p.key}`;options.body=JSON.stringify({model,input:'Reply OK to verify this coding agent connection.',max_output_tokens:32});}
+  else if(d.protocol==='anthropic'){target+=target.endsWith('/v1')?'/messages':'/v1/messages';options.headers['x-api-key']=p.key;options.headers['anthropic-version']='2023-06-01';options.body=JSON.stringify({model,messages:[{role:'user',content:'Reply OK to verify this coding agent connection.'}],max_tokens:16});}
+  else if(d.protocol==='gemini'){target+=`/models/${encodeURIComponent(model)}:generateContent`;options.headers['x-goog-api-key']=p.key;options.body=JSON.stringify({contents:[{parts:[{text:'Reply OK to verify this coding agent connection.'}]}],generationConfig:{maxOutputTokens:16}});}
+  else throw Error('协议尚不支持调用检查');
+ }
+ const started=Date.now();let result;try{const response=await fetcher(target,options);let modelValid=false,empty=false;if(input.mode==='model'&&response.ok){const reader=response.body?.getReader();let body='';const decoder=new TextDecoder();if(reader){try{while(true){const{done,value}=await reader.read();if(done)break;if(body.length+value.length>262144)throw Error('response size');body+=decoder.decode(value,{stream:true});}}finally{await reader.cancel();}}body+=decoder.decode();let json;try{json=JSON.parse(body);}catch{}({valid:modelValid,empty}=validateModelResponse(d.protocol,json));}else await response.body?.cancel();result={mode:input.mode,model:input.mode==='model'?model:null,status:input.mode==='address'?'reachable':response.ok&&modelValid?'model-ok':response.ok?(empty?'no-output':'invalid-response'):[401,403].includes(response.status)?'authentication-error':response.status===429?'rate-limited':response.status===404?'not-found':'rejected',httpStatus:response.status,latencyMs:Date.now()-started,message:input.mode==='address'?'接口有响应；此检查未发送密钥，不代表凭据可用':response.ok&&modelValid?'收到模型响应；不代表全部 Agent 能力已验证':response.ok?(empty?'响应有效但没有可见输出，可能需要更多输出额度，未判定通过':'返回格式不符合所选协议，未判定通过'):[401,403].includes(response.status)?'认证或访问权限失败，请检查密钥和套餐':response.status===429?'接口限流或额度不足，请检查套餐':response.status===404?'接口或模型不存在，请检查地址和模型 ID':`接口未返回有效模型结果（HTTP ${response.status}）`};}catch{result={mode:input.mode,model:input.mode==='model'?model:null,status:'network-error',latencyMs:Date.now()-started,message:'连接失败、超时或发生重定向；未记录接口响应内容'};}
+ await store.recordCheck(p.id,{...result,fingerprint});return result;
+}

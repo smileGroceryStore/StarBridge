@@ -1,0 +1,27 @@
+{
+  "name": "allsetting",
+  "version": "0.11.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "scan": "node src/scan-cli.js",
+    "start:web": "node src/server.js",
+    "dist:win": "electron-builder --win nsis --x64"
+  },
+  "main": "desktop/main.cjs",
+  "description": "Starbridge - AI tool connection manager",
+  "author": "AllSetting",
+  "devDependencies": {
+    "electron": "^44.8.0",
+    "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.3.1",
+    "toml-eslint-parser": "^1.0.3"
+  }
+}

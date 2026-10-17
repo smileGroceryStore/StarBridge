@@ -1,0 +1,17 @@
+node_modules/
+release/
+.allsetting/
+research/
+scripts/
+.env
+.env.*
+*.enc
+*.bak
+*.starbridge
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+docs/*.png
+docs/go-import-result.json

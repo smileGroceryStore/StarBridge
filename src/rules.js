@@ -1,0 +1,33 @@
+// Heuristic discovery rules, not configuration adapters. Never execute these files.
+export const rules = {
+  'claude-code': { commands: ['claude'], traces: ['.claude'] },
+  codex: { commands: ['codex'], traces: ['.codex'] },
+  'gemini-cli': { commands: ['gemini'], traces: ['.gemini'] },
+  opencode: { commands: ['opencode'], traces: ['.config/opencode'] },
+  pi: { commands: ['pi'], traces: ['.pi'] },
+  'kimi-code': { commands: ['kimi'], traces: ['.kimi'] },
+  'deepseek-harness': { commands: ['dsh'] },
+  'qwen-code': { commands: ['qwen'], traces: ['.qwen'] },
+  aider: { commands: ['aider'], traces: ['.aider.conf.yml'] },
+  goose: { commands: ['goose'], traces: ['.config/goose'] },
+  reasonix:{commands:['reasonix'],apps:['Reasonix Studio/Reasonix Studio.exe'],traces:['AppData/Roaming/reasonix','.reasonix']},
+  zcode: { apps: ['ZCode/ZCode.exe', 'ZCode/zcode.exe'], traces: ['.zcode'] },
+  cline: { extension: ['saoudrizwan.claude-dev'] },
+  continue: { extension: ['continue.continue'], traces: ['.continue'] },
+  'roo-code': { extension: ['rooveterinaryinc.roo-cline'] },
+  'kilo-code': { extension: ['kilocode.kilo-code'] },
+  openhands: { commands: ['openhands'], traces: ['.openhands'] },
+  hermes: { commands: ['hermes'], traces: ['.hermes'] },
+  openclaw: { commands: ['openclaw'], traces: ['.openclaw'] },
+  cursor: { commands: ['cursor'], apps: ['cursor/Cursor.exe', 'Cursor/Cursor.exe'], traces: ['.cursor'] },
+  windsurf: { commands: ['windsurf'], apps: ['Windsurf/Windsurf.exe'], traces: ['.windsurf'] },
+  trae: { commands: ['trae'], apps: ['Trae/Trae.exe', 'TRAE/TRAE.exe'], traces: ['.trae'] },
+  qoder: { commands: ['qoder'], apps: ['Qoder/Qoder.exe'], traces: ['.qoder'] },
+  zed: { commands: ['zed'], apps: ['Zed/Zed.exe'] },
+  vscode: { commands: ['code'], apps: ['Microsoft VS Code/Code.exe'] },
+  vscodium: { commands: ['codium'], apps: ['VSCodium/VSCodium.exe'] },
+  copilot: { extension: ['github.copilot', 'github.copilot-chat'] },
+  amp: { commands: ['amp'] },
+  droid: { commands: ['droid'], traces: ['.factory'] }
+};
+export const extensionHomes = ['.vscode/extensions', '.vscode-insiders/extensions', '.vscode-oss/extensions', '.cursor/extensions', '.windsurf/extensions', '.trae/extensions'];
