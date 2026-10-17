@@ -2,21 +2,21 @@ import {analyzeGeminiSession} from './gemini-session.js';
 import fs from 'node:fs/promises';import path from 'node:path';import {createHash} from 'node:crypto';
 const n=v=>Number.isFinite(v)&&v>=0?v:0;
 export function analyzeSession(tool,text,file,mtime){
- let title=path.basename(file),timestamp=mtime;const models=new Set(),requests=new Map();let codexTotals=null,records=0,partial=false;
+ let title=path.basename(file),timestamp=mtime;const models=new Set(),requests=new Map();let codexTotals=null,records=0,partial=false,currentModel='',provider='';const codexRequests=[];
  for(const line of text.split(/\r?\n/)){if(!line.trim())continue;if(line.length>1000000){partial=true;continue;}let e;try{e=JSON.parse(line);}catch{partial=true;continue;}if(!e||typeof e!=='object'||Array.isArray(e)){partial=true;continue;}records++;
   if(typeof e.title==='string'&&e.title.trim())title=e.title.slice(0,200);
   if(typeof e.customTitle==='string')title=e.customTitle.slice(0,200);
   if(['session','session_info'].includes(e.type)&&typeof e.name==='string')title=e.name.slice(0,200);
-  const m=e.message??e.payload??{};if(typeof m.model==='string')models.add(m.model);
-  if(tool==='codex'&&e.type==='event_msg'&&m.type==='token_count'&&m.info?.total_token_usage){const u=m.info.total_token_usage;codexTotals={input:n(u.input_tokens),output:n(u.output_tokens),cache:n(u.cached_input_tokens),cost:null};continue;}
+  const m=e.message??e.payload??{};if(typeof m.model==='string'){models.add(m.model);currentModel=m.model;}if(e.type==='session_meta'&&typeof m.model_provider==='string')provider=m.model_provider;
+  if(tool==='codex'&&e.type==='event_msg'&&m.type==='token_count'&&m.info?.total_token_usage){const u=m.info.total_token_usage;const total={input:n(u.input_tokens),output:n(u.output_tokens),cache:n(u.cached_input_tokens),cost:null};const previous=codexTotals??{input:0,output:0,cache:0};if(total.input<previous.input||total.output<previous.output||total.cache<previous.cache){partial=true;continue;}const input=total.input-previous.input,output=total.output-previous.output,cacheRead=total.cache-previous.cache;if(input||output||cacheRead)codexRequests.push({model:currentModel,provider,input:Math.max(0,input-cacheRead),output,cacheRead,cacheWrite:0,invalid:cacheRead>input||![u.input_tokens,u.output_tokens,u.cached_input_tokens??0].every(v=>Number.isSafeInteger(v)&&v>=0)});codexTotals=total;continue;}
   const u=m.usage;if(!u||(m.role!=='assistant'&&e.type!=='assistant'))continue;
-  const cache=n(u.cache_read_input_tokens??u.cacheRead)+n(u.cache_creation_input_tokens??u.cacheWrite),input=n(u.input_tokens??u.input)+cache,output=n(u.output_tokens??u.output);
-  const key=m.id??e.uuid??e.id??String(records),prior=requests.get(key),cost=typeof u.cost?.total==='number'?n(u.cost.total):null;
+  const cacheRead=n(u.cache_read_input_tokens??u.cacheRead),cacheWrite=n(u.cache_creation_input_tokens??u.cacheWrite),cache=cacheRead+cacheWrite,input=n(u.input_tokens??u.input)+cache,output=n(u.output_tokens??u.output);
+  const key=m.id??e.uuid??e.id??String(records),prior=requests.get(key),cost=Number.isFinite(u.cost?.total)&&u.cost.total>=0?u.cost.total:null;
   // Streaming records for the same message replace cumulative snapshots rather than adding them.
-  requests.set(key,{input:Math.max(input,prior?.input??0),output:Math.max(output,prior?.output??0),cache:Math.max(cache,prior?.cache??0),cost:cost===null?(prior?.cost??null):Math.max(cost,prior?.cost??0)});
+  requests.set(key,{invalid:![u.input_tokens??u.input,u.output_tokens??u.output,u.cache_read_input_tokens??u.cacheRead??0,u.cache_creation_input_tokens??u.cacheWrite??0].every(v=>Number.isSafeInteger(v)&&v>=0),model:typeof m.model==='string'?m.model:prior?.model??'',provider:typeof m.provider==='string'?m.provider:prior?.provider??'',cacheRead:Math.max(cacheRead,prior?.cacheRead??0),cacheWrite:Math.max(cacheWrite,prior?.cacheWrite??0),input:Math.max(input,prior?.input??0),output:Math.max(output,prior?.output??0),cache:Math.max(cache,prior?.cache??0),cost:cost===null?(prior?.cost??null):Math.max(cost,prior?.cost??0)});
  }
  const totals=codexTotals??[...requests.values()].reduce((a,b)=>({input:a.input+b.input,output:a.output+b.output,cache:a.cache+b.cache,cost:b.cost===null?a.cost:(a.cost??0)+b.cost}),{input:0,output:0,cache:0,cost:null});
- return{id:createHash('sha256').update(file).digest('hex').slice(0,24),tool,title,path:file,updatedAt:new Date(timestamp).toISOString(),models:[...models],...totals,records,partial};
+ return{id:createHash('sha256').update(file).digest('hex').slice(0,24),tool,title,path:file,updatedAt:new Date(timestamp).toISOString(),models:[...models],...totals,usageDetails:codexTotals?codexRequests:[...requests.values()].map(u=>({model:u.model,provider:u.provider,input:Math.max(0,u.input-u.cacheRead-u.cacheWrite),output:u.output,cacheRead:u.cacheRead,cacheWrite:u.cacheWrite,...(u.invalid?{invalid:true}:{})})),records,partial};
 }
 export async function sessionIndex(home,locations={}){
  const sources=[{tool:'codex',root:path.join(home,'.codex/sessions')},{tool:'claude-code',root:path.join(home,'.claude/projects')},{tool:'pi',root:path.join(locations.pi||path.join(home,'.pi/agent'),'sessions')},{tool:'gemini-cli',root:path.join(home,'.gemini/tmp')}];

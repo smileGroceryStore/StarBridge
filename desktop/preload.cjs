@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('allsetting', {
   resourceStatus: () => ipcRenderer.invoke('resources-status'),
   exportResources: input => ipcRenderer.invoke('resources-export',input),
   importResources: input => ipcRenderer.invoke('resources-import',input),
+  pricing: (operation,input) => ipcRenderer.invoke('pricing-'+operation,input),
   sessionIndex: () => ipcRenderer.invoke('sessions-index'),
   revealSession: input => ipcRenderer.invoke('session-reveal',input),
   authOverview: () => ipcRenderer.invoke('auth-overview'),
