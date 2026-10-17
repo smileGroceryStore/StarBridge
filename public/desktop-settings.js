@@ -33,13 +33,11 @@
  $('desktop-config-search').oninput=renderPaths;
  for(const radio of modal.querySelectorAll('input[name="theme"]'))radio.onchange=async()=>{
   if(!radio.checked)return;
-  const previous=document.documentElement.dataset.theme;const radios=modal.querySelectorAll('input[name="theme"]');radios.forEach(n=>n.disabled=true);
-  try{await window.starbridgeTheme.ready;const saved=await call('deviceSettings',{theme:radio.value});window.starbridgeTheme.apply(saved.theme);$('desktop-settings-message').textContent='外观主题已保存。';}
-  catch(error){window.starbridgeTheme.apply(previous);$('desktop-settings-form').elements.theme.value=previous;$('desktop-settings-message').textContent=error.message;}
-  finally{radios.forEach(n=>n.disabled=false);}
+  try{await window.starbridgeTheme.set(radio.value);$('desktop-settings-message').textContent='外观主题已保存。';}
+  catch(error){window.starbridgeTheme.sync();$('desktop-settings-message').textContent=error.message;}
  };
 
- async function load(){await window.starbridgeTheme.ready;const[s,info]=await Promise.all([call('deviceSettings'),call('configurationInfo')]);for(const key of ['closeToTray','minimizeToTray','startAtLogin'])$('desktop-settings-form').elements[key].checked=s[key];$('desktop-settings-form').elements.theme.value=s.theme??'anime';$('desktop-hide').disabled=!s.backgroundAvailable;tools=info;renderPaths();}
+ async function load(){await window.starbridgeTheme.ready;const[s,info]=await Promise.all([call('deviceSettings'),call('configurationInfo')]);for(const key of ['closeToTray','minimizeToTray','startAtLogin'])$('desktop-settings-form').elements[key].checked=s[key];$('desktop-settings-form').elements.theme.value=s.theme??'frost';$('desktop-hide').disabled=!s.backgroundAvailable;tools=info;renderPaths();}
  button.onclick=async()=>{if(!modal.open)modal.showModal();$('desktop-settings-message').textContent='';$('desktop-config-search').value='';$('desktop-config-summary').textContent='正在检查目录与支持状态…';try{await load();}catch(e){$('desktop-settings-message').textContent=e.message;}};
  $('desktop-settings-close').onclick=()=>modal.close();$('desktop-settings-form').onsubmit=async e=>{e.preventDefault();const data={};for(const key of ['closeToTray','minimizeToTray','startAtLogin'])data[key]=e.target.elements[key].checked;try{await call('deviceSettings',data);$('desktop-settings-message').textContent='后台设置已保存。';}catch(error){$('desktop-settings-message').textContent=error.message;}};
  $('desktop-hide').onclick=async()=>{try{modal.close();await call('hideToTray');}catch(e){modal.showModal();$('desktop-settings-message').textContent=e.message;}};$('desktop-quit').onclick=()=>call('quitApp');

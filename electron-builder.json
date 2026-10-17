@@ -4,7 +4,7 @@
   "directories": { "output": "release" },
   "files": ["desktop/**/*", "src/**/*", "public/**/*", "catalog/tools.json", "package.json"],
   "asar": true,
-  "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "icon": "public/assets/starbridge.ico", "signExecutable": false },
-  "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true, "shortcutName": "星桥 Starbridge", "artifactName": "Starbridge-Setup-${version}-${arch}.${ext}", "runAfterFinish": true, "installerIcon": "public/assets/starbridge.ico", "uninstallerIcon": "public/assets/starbridge.ico" },
+  "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "icon": "public/assets/starbridge-frost.ico", "signExecutable": false },
+  "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "createStartMenuShortcut": true, "shortcutName": "星桥 Starbridge", "artifactName": "Starbridge-Setup-${version}-${arch}.${ext}", "runAfterFinish": true, "installerIcon": "public/assets/starbridge-frost.ico", "uninstallerIcon": "public/assets/starbridge-frost.ico" },
   "publish": null
 }
