@@ -16,6 +16,15 @@ export class WorkspaceService{
   const pending=[...await this.engine.pending(),...await this.resources.pending()];const migration=await this.migrationPending();
   return{rows,pending,migration,counts:{pending:rows.filter(r=>['not-applied','preset-changed','restored'].includes(r.status)).length,synced:rows.filter(r=>r.status==='applied').length,conflicts:rows.filter(r=>['external-change','error'].includes(r.status)).length,recovery:pending.length+(migration?1:0)},notice:'已同步表示文件已写入并核验。真实调用需在对应工具的新会话验证；本页不会发送模型请求。'};
  }
+ async syncOne(id){
+  if(this.busy||await this.migrationPending())throw Error('请先处理工作台的未完成迁移，或等待迁移结束');
+  const status=await this.status(),row=status.rows.find(r=>r.id===id);
+  if(!row)throw Error('配置列表已变化，请刷新');
+  if(!['not-applied','preset-changed','restored','applied'].includes(row.status))throw Error(row.message||'请先检查配置状态后再同步');
+  const engine=row.kind==='api'?this.engine:this.resources;
+  const plan=await engine.preview(row.kind==='api'?row.tool:'asset-'+row.tool);
+  return engine.apply(plan.id);
+ }
  async previewBatch(ids){if(!Array.isArray(ids)||!ids.length||ids.length>20||new Set(ids).size!==ids.length)throw Error('请选择 1–20 项配置');const status=await this.status(),items=[];for(const id of ids){const row=status.rows.find(r=>r.id===id);if(!row)throw Error('配置列表已变化，请刷新');try{const engine=row.kind==='api'?this.engine:this.resources,plan=await engine.preview(row.kind==='api'?row.tool:'asset-'+row.tool);items.push({id,tool:row.tool,kind:row.kind,plan});}catch(error){items.push({id,tool:row.tool,kind:row.kind,error:error.message});}}const id=randomUUID();this.batchPlans.clear();this.batchPlans.set(id,{items,created:Date.now()});return{id,items,notice:'按列表逐项备份并应用。单项失败不影响其他项；每项可单独恢复。同一工具的 API 与资源共享文件时，后项会按新文件重新检查。'};}
  async applyBatch(id){const plan=this.batchPlans.get(id);if(!plan||Date.now()-plan.created>600000)throw Error('批量预览已过期');this.batchPlans.delete(id);const results=[],writtenTools=new Set(),writtenHashes=new Map();for(const item of plan.items){if(item.error){results.push({...item,plan:undefined,status:'skipped',message:item.error});continue;}const engine=item.kind==='api'?this.engine:this.resources;try{let current=item.plan;
    // Only re-preview after our own earlier write changed shared files. Surface its exact result.
