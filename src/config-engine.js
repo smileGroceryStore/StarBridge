@@ -97,7 +97,7 @@ export class ConfigEngine {
   return this.status(plan.toolId);
  });}
  async status(toolId){
-  if(!this.supportedTools.includes(toolId))return{toolId,status:'unsupported',message:'适配器待核验'};
+  if(!this.supportedTools.includes(toolId))return{toolId,status:'unsupported',message:'不支持同步：尚未开放配置写入。预设仅保存在星桥，接口和模型不会写入工具，请在原工具中手动配置。'};
   if((await this.pending()).some(p=>p.toolId===toolId)||await this.hasPeerPending?.(toolId))return{toolId,status:'recovery-required',message:'发现未完成操作，请打开备份与恢复检查',canRestore:false};
   const record=await this.record(toolId);if(!record)return{toolId,status:'not-applied',message:'尚未应用'};if(record.phase==='restored')return{toolId,status:'restored',message:'已恢复上次应用前的文件'};
   const changed=[];for(const f of record.files){const snap=await this.snapshot(f.file);if(snap.hash!==f.afterHash)changed.push(snap);}

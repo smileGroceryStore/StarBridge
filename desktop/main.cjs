@@ -281,6 +281,7 @@ else {
       if(await mainWindow.webContents.executeJavaScript(`document.getElementById('workspace-batch-close').closest('dialog').open`))throw Error('Direct sync incorrectly opened preview');
       if((await configEngine.status('pi')).status!=='applied')throw Error('Direct sync did not apply configuration');
       require('node:fs').writeFileSync(path.join(app.getPath('temp'),'starbridge-direct-sync.png'),(await mainWindow.capturePage(undefined,{stayHidden:false,stayAwake:true})).toPNG());
+      await require('./sync-status-smoke.cjs')({window:mainWindow,store:encryptedStore,temp:app.getPath('temp')});
       await mainWindow.webContents.executeJavaScript(`{const box=document.querySelector('#workspace-rows input[value="api:pi"]');box.checked=true;box.dispatchEvent(new Event('change'));document.getElementById('workspace-preview').click();}`);
       await mainWindow.webContents.executeJavaScript(`new Promise((resolve,reject)=>{const end=Date.now()+10000;const check=()=>{if(!document.getElementById('workspace-batch-confirm').disabled)resolve();else if(Date.now()>end)reject(Error('Batch preview UI failed'));else setTimeout(check,100)};check()})`);
       await mainWindow.webContents.executeJavaScript(`document.getElementById('workspace-batch-confirm').click()`);
