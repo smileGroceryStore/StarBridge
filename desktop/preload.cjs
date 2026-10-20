@@ -52,6 +52,7 @@ contextBridge.exposeInMainWorld('allsetting', {
   toggleProfile: input => ipcRenderer.invoke('profiles-toggle', input),
   bindProfile: input => ipcRenderer.invoke('profiles-bind', input),
   addModels: input => ipcRenderer.invoke('profiles-models', input),
+  previewModels: input => ipcRenderer.invoke('profiles-model-preview', input),
   discoverModels: input => ipcRenderer.invoke('profiles-discover', input),
   saveToolModels: input => ipcRenderer.invoke('tool-model-save', input),
   clearToolModels: input => ipcRenderer.invoke('tool-model-clear', input),
