@@ -78,16 +78,13 @@ else {
     };
     const operationBusy=new Set();for(const[channel,operation]of Object.entries(extraOps))ipcMain.handle(channel,async(event,input)=>{if(!trusted(event))throw Error('无效窗口');if(workspaceService.busy)return{ok:false,error:'完整迁移正在进行，请稍候'};if(operationBusy.has(channel))return{ok:false,error:'操作正在进行，请稍候'};operationBusy.add(channel);try{if(/^(?:resources-(?:save|delete|apply|restore|import|existing-commit|backup-restore)|library-(?:import-commit|restore)|profile-(?:delete|clone|archive)|workspace-(?:batch-apply|sync))$/.test(channel)&&await workspaceService.migrationPending())throw Error('请先处理工作台的未完成迁移');return{ok:true,data:await operation(input)};}catch(error){return{ok:false,error:channel.startsWith('library-')?(error.code?'文件操作失败，请检查权限；原数据保留':error.message):error.message};}finally{operationBusy.delete(channel);}});
     for(const [channel,operation]of Object.entries({'config-preview':input=>configEngine.preview(input.toolId),'config-apply':async input=>{const r=await configEngine.apply(input.id);try{const c=(await encryptedStore.read()).toolModels[r.toolId];await encryptedStore.markUsed((c?.connections??[{profileId:c?.profileId}]).map(x=>x.profileId));}catch{}return r;},'config-restore':input=>configEngine.restore(input.toolId),'config-status':async()=>Promise.all([...configEngine.supportedTools,'zcode'].map(async toolId=>{try{return await configEngine.status(toolId);}catch{return{toolId,status:'error',message:'状态检查失败，请检查配置文件权限'};}}))}))ipcMain.handle(channel,async(event,input)=>{if(!trusted(event))throw Error('无效窗口');try{if(workspaceService.busy)throw Error('迁移正在进行，请稍候');return{ok:true,data:await operation(input)};}catch(error){return{ok:false,error:error.message};}});
-    const { parseGoModels, GO_MODELS_URL } = await import('../src/model-catalog.js');
+    const { discoverConnectionModels } = await import('../src/model-discovery.js');
     const refreshGoModels = async id => {
-      const p = (await encryptedStore.list()).profiles.find(p=>p.id===id);
-      if (!p || new URL(p.baseUrl).origin !== 'https://opencode.ai' || p.billing !== 'coding-plan') throw Error('自动发现目前仅支持 OpenCode Go；其他连接请手动添加模型');
-      const response = await net.fetch(GO_MODELS_URL, { signal: AbortSignal.timeout(20000), redirect: 'error' });
-      if (!response.ok) throw Error(`官方模型目录返回 ${response.status}`);
-      const body = await response.text(); if (body.length > 1024*1024) throw Error('目录响应过大');
-      const {entries, skipped} = parseGoModels(JSON.parse(body));
-      const data = await encryptedStore.addModels(id, entries, GO_MODELS_URL);
-      return { ...data, discovery: { count: entries.length, skipped, authenticated: false } };
+      const p = (await encryptedStore.read()).profiles.find(p=>p.id===id);
+      if (!p) throw Error('连接不存在');
+      const result = await discoverConnectionModels(p, (url, options)=>net.fetch(url, options));
+      const data = await encryptedStore.addModels(id, result.entries, result.source);
+      return { ...data, discovery: { count: result.entries.length, skipped: result.skipped, authenticated: !!p.key } };
     };
     for (const [channel, operation] of Object.entries({ 'profiles-list': () => encryptedStore.list(), 'profiles-save': input => encryptedStore.save(input), 'profiles-toggle': input => encryptedStore.toggle(input.id, input.enabled), 'profiles-bind': input => encryptedStore.bind(input.id, input.toolIds), 'profiles-models': input => encryptedStore.addModels(input.id, input.entries), 'profiles-discover': input => refreshGoModels(input.id), 'tool-model-save': input => encryptedStore.configureTool(input), 'tool-model-clear': input => encryptedStore.clearTool(input.toolId) })) {
       ipcMain.handle(channel, async (event, input) => { if (!trusted(event)) throw Error('无效窗口'); try { if(workspaceService.busy||channel!=='profiles-list'&&await workspaceService.migrationPending())throw Error('请先处理工作台的未完成迁移');return { ok: true, data: await operation(input) }; } catch (error) { return { ok: false, error: error.message }; } });
