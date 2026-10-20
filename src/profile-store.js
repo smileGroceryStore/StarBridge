@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
+import { modelMetadata } from './model-discovery.js';
 import { compatibleModels } from './model-catalog.js';
 import {toolConnections,modelsForProfile} from './tool-config.js';
 import {validatePortable} from './portable.js';
@@ -35,7 +36,7 @@ export class ProfileStore {
     let url; try { url = new URL(input.baseUrl); } catch { throw Error('接口地址不是有效 URL'); }
     if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw Error('接口地址必须为 HTTP(S)，且不能包含密码、查询参数或片段');
     if (url.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) throw Error('远程接口请使用 HTTPS；HTTP 仅允许本机服务');
-    if (!Array.isArray(input.models) || input.models.length > 100 || input.models.some(m => !string(m, 200) || !m.trim() || ['__proto__','constructor','prototype'].includes(m))) throw Error('模型列表无效');
+    if (!Array.isArray(input.models) || input.models.length > 20000 || input.models.some(m => !string(m, 200) || !m.trim() || ['__proto__','constructor','prototype'].includes(m))) throw Error('模型列表无效');
     if (typeof input.enabled !== 'boolean') throw Error('启用状态无效');
     return this.mutate(data => {
       const old = input.id ? data.profiles.find(p => p.id === input.id) : null;
@@ -59,13 +60,13 @@ export class ProfileStore {
     });
   }
   addModels(profileId, entries, source = 'manual') {
-    if (!Array.isArray(entries) || entries.length > 100 || entries.some(e => typeof e.id !== 'string' || !e.id.trim() || ['__proto__','constructor','prototype'].includes(e.id.trim()) || e.id.length > 200 || !['openai-chat','openai-responses','anthropic','gemini'].includes(e.protocol) || typeof e.baseUrl !== 'string')) throw Error('模型格式无效');
+    if (!Array.isArray(entries) || entries.length > 20000 || entries.some(e => typeof e.id !== 'string' || !e.id.trim() || ['__proto__','constructor','prototype'].includes(e.id.trim()) || e.id.length > 200 || !['openai-chat','openai-responses','anthropic','gemini'].includes(e.protocol) || typeof e.baseUrl !== 'string')) throw Error('模型格式无效');
     for (const entry of entries) { let u; try { u = new URL(entry.baseUrl); } catch { throw Error('模型接口地址无效'); } if (u.username || u.password || u.search || u.hash || !(u.protocol === 'https:' || (u.protocol === 'http:' && ['localhost','127.0.0.1','[::1]'].includes(u.hostname)))) throw Error('模型接口地址不安全'); }
     return this.mutate(data => {
       const p = data.profiles.find(p => p.id === profileId); if (!p) throw Error('连接不存在');
       p.modelDetails ??= {};
-      for (const entry of entries) { const id = entry.id.trim(); if (!p.models.includes(id)) p.models.push(id); if(entry.inherit===true)delete p.modelDetails[id];else p.modelDetails[id] = { protocol: entry.protocol, baseUrl: entry.baseUrl }; }
-      if (p.models.length > 100) throw Error('每个连接最多保存 100 个模型');
+      for (const entry of entries) { const id = entry.id.trim(); if (!p.models.includes(id)) p.models.push(id); if(entry.inherit===true)delete p.modelDetails[id];else p.modelDetails[id] = { ...p.modelDetails[id], ...modelMetadata(entry), protocol: entry.protocol, baseUrl: entry.baseUrl }; }
+      if (p.models.length > 20000) throw Error('每个连接最多保存 20000 个模型');
       for (const [tool, config] of Object.entries(data.toolModels)) if (modelsForProfile(config,p.id).some(id => !compatibleModels(p, tool).includes(id))) throw Error('模型协议更新与已有 Agent 预设冲突');
       p.modelsUpdatedAt = new Date().toISOString(); p.modelsSource = source;
     });
