@@ -20,3 +20,14 @@ test('uses protocol-specific credentials and rejects HTTP remote URLs',async()=>
  await assert.rejects(discoverConnectionModels({...profile,baseUrl:'http://remote.test'},()=>assert.fail()),/不安全/);
  assert.throws(()=>parseConnectionModels({data:[]},profile),/没有返回/);
 });
+import {previewConnectionModels} from '../src/model-preview.js';
+import {modelEndpoints} from '../src/model-discovery.js';
+test('draft fetch reuses stored key only on the same origin and never saves',async()=>{
+ const store={read:async()=>({profiles:[{id:'saved',...profile}]})};
+ const r=await previewConnectionModels(store,{id:'saved',...profile,key:''},async(url,opts)=>{assert.equal(opts.headers.Authorization,'Bearer secret');return reply({data:[{id:'a',context_window:100,max_output_tokens:10}]});});assert.equal(r.entries.length,1);
+ await assert.rejects(previewConnectionModels(store,{id:'saved',...profile,baseUrl:'https://other.test',key:''},()=>assert.fail()),/域名已改变/);
+});
+test('model endpoint fallback follows compatible subpaths only for 404/405',async()=>{
+ assert.deepEqual(modelEndpoints({...profile,baseUrl:'https://api.deepseek.com/anthropic'}),['https://api.deepseek.com/anthropic/v1/models','https://api.deepseek.com/anthropic/models','https://api.deepseek.com/v1/models','https://api.deepseek.com/models']);
+ let calls=0;const r=await discoverConnectionModels({...profile,baseUrl:'https://example.com/anthropic'},async()=>++calls<3?{ok:false,status:404}:reply({models:[{slug:'custom',context_window:100,max_output_tokens:10}]}));assert.equal(r.entries[0].id,'custom');assert.equal(calls,3);
+});

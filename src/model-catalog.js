@@ -16,7 +16,7 @@ export const toolProtocols = {
   reasonix:['openai-chat','openai-responses','anthropic'],
   pi: ['openai-chat','openai-responses','anthropic','gemini'], opencode: ['openai-chat','openai-responses','anthropic','gemini']
 };
-export function modelFor(profile, id) { return profile.modelDetails?.[id] ?? { protocol: profile.protocol, baseUrl: profile.baseUrl }; }
+export function modelFor(profile, id) { const detail=profile.modelDetails?.[id]; return !detail||detail.inherit?{...detail,protocol:profile.protocol,baseUrl:profile.baseUrl}:detail; }
 export function compatibleModels(profile, toolId) { const allowed = toolProtocols[toolId]; return profile.models.filter(id => !allowed || allowed.includes(modelFor(profile, id).protocol)); }
 export function parseGoModels(json) {
   if (!json || !Array.isArray(json.data) || json.data.length > 500) throw Error('模型目录格式不正确');

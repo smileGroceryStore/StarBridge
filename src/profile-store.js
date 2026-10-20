@@ -46,6 +46,12 @@ export class ProfileStore {
       const models = [...new Set(input.models.map(m => m.trim()))];
       for (const config of Object.values(data.toolModels)) if (modelsForProfile(config,old?.id).some(m => !models.includes(m))) throw Error('待移除模型仍被 Agent 预设引用，请先调整 Agent 模型');
       const profile = { id: old?.id ?? randomUUID(), name: input.name.trim(), vendor: input.vendor.trim(), baseUrl: input.baseUrl.trim(), protocol: input.protocol, billing: input.billing, models, modelDetails: Object.fromEntries(Object.entries(old?.modelDetails ?? {}).filter(([id])=>models.includes(id))), notes: input.notes.trim(), enabled: input.enabled&&!old?.archived, archived:old?.archived??false, checks:old?.checks,favorite:old?.favorite??false,lastUsedAt:old?.lastUsedAt, key, updatedAt: new Date().toISOString() };
+      if(input.modelMetadata!==undefined){
+        if(!input.modelMetadata||typeof input.modelMetadata!=='object'||Array.isArray(input.modelMetadata)||Object.keys(input.modelMetadata).some(id=>!models.includes(id)))throw Error('模型属性无效');
+        for(const id of models){const meta=input.modelMetadata[id];if(!meta)continue;if(typeof meta!=='object'||Array.isArray(meta))throw Error('模型属性无效');for(const k of ['contextWindow','maxOutputTokens'])if(meta[k]!==undefined&&(!Number.isSafeInteger(meta[k])||meta[k]<=0))throw Error('模型 Token 限制必须为正整数');for(const k of ['supports1M','toolCall','reasoning'])if(meta[k]!==undefined&&typeof meta[k]!=='boolean')throw Error('模型能力字段无效');
+          const previous=profile.modelDetails[id]?{...profile.modelDetails[id]}:null;if(previous)for(const k of ['contextWindow','maxOutputTokens','supports1M','toolCall','reasoning','inputModalities','metadataSource'])delete previous[k];profile.modelDetails[id]={...(!previous||previous.inherit?{protocol:profile.protocol,baseUrl:profile.baseUrl,inherit:true}:previous),...modelMetadata(meta)};
+        }
+      }
       for (const [toolId, config] of Object.entries(data.toolModels)) if (modelsForProfile(config,profile.id).some(m => !compatibleModels(profile, toolId).includes(m))) throw Error('协议变更会使 Agent 预设不兼容，请先调整 Agent 模型');
       if (old) data.profiles[data.profiles.indexOf(old)] = profile; else data.profiles.push(profile);
     });
@@ -65,7 +71,7 @@ export class ProfileStore {
     return this.mutate(data => {
       const p = data.profiles.find(p => p.id === profileId); if (!p) throw Error('连接不存在');
       p.modelDetails ??= {};
-      for (const entry of entries) { const id = entry.id.trim(); if (!p.models.includes(id)) p.models.push(id); if(entry.inherit===true)delete p.modelDetails[id];else p.modelDetails[id] = { ...p.modelDetails[id], ...modelMetadata(entry), protocol: entry.protocol, baseUrl: entry.baseUrl }; }
+      for (const entry of entries) { const id = entry.id.trim(); if (!p.models.includes(id)) p.models.push(id); if(entry.inherit===true){const meta=modelMetadata(p.modelDetails[id]??{});if(Object.keys(meta).length)p.modelDetails[id]={...meta,protocol:p.protocol,baseUrl:p.baseUrl,inherit:true};else delete p.modelDetails[id];}else p.modelDetails[id] = { ...p.modelDetails[id], ...modelMetadata(entry), protocol: entry.protocol, baseUrl: entry.baseUrl }; }
       if (p.models.length > 20000) throw Error('每个连接最多保存 20000 个模型');
       for (const [tool, config] of Object.entries(data.toolModels)) if (modelsForProfile(config,p.id).some(id => !compatibleModels(p, tool).includes(id))) throw Error('模型协议更新与已有 Agent 预设冲突');
       p.modelsUpdatedAt = new Date().toISOString(); p.modelsSource = source;

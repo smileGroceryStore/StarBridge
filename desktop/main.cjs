@@ -78,6 +78,7 @@ else {
     };
     const operationBusy=new Set();for(const[channel,operation]of Object.entries(extraOps))ipcMain.handle(channel,async(event,input)=>{if(!trusted(event))throw Error('无效窗口');if(workspaceService.busy)return{ok:false,error:'完整迁移正在进行，请稍候'};if(operationBusy.has(channel))return{ok:false,error:'操作正在进行，请稍候'};operationBusy.add(channel);try{if(/^(?:resources-(?:save|delete|apply|restore|import|existing-commit|backup-restore)|library-(?:import-commit|restore)|profile-(?:delete|clone|archive)|workspace-(?:batch-apply|sync))$/.test(channel)&&await workspaceService.migrationPending())throw Error('请先处理工作台的未完成迁移');return{ok:true,data:await operation(input)};}catch(error){return{ok:false,error:channel.startsWith('library-')?(error.code?'文件操作失败，请检查权限；原数据保留':error.message):error.message};}finally{operationBusy.delete(channel);}});
     for(const [channel,operation]of Object.entries({'config-preview':input=>configEngine.preview(input.toolId),'config-apply':async input=>{const r=await configEngine.apply(input.id);try{const c=(await encryptedStore.read()).toolModels[r.toolId];await encryptedStore.markUsed((c?.connections??[{profileId:c?.profileId}]).map(x=>x.profileId));}catch{}return r;},'config-restore':input=>configEngine.restore(input.toolId),'config-status':async()=>Promise.all([...configEngine.supportedTools,'zcode'].map(async toolId=>{try{return await configEngine.status(toolId);}catch{return{toolId,status:'error',message:'状态检查失败，请检查配置文件权限'};}}))}))ipcMain.handle(channel,async(event,input)=>{if(!trusted(event))throw Error('无效窗口');try{if(workspaceService.busy)throw Error('迁移正在进行，请稍候');return{ok:true,data:await operation(input)};}catch(error){return{ok:false,error:error.message};}});
+    const { previewConnectionModels } = await import('../src/model-preview.js');
     const { discoverConnectionModels } = await import('../src/model-discovery.js');
     const refreshGoModels = async id => {
       const p = (await encryptedStore.read()).profiles.find(p=>p.id===id);
@@ -86,7 +87,7 @@ else {
       const data = await encryptedStore.addModels(id, result.entries, result.source);
       return { ...data, discovery: { count: result.entries.length, skipped: result.skipped, authenticated: !!p.key } };
     };
-    for (const [channel, operation] of Object.entries({ 'profiles-list': () => encryptedStore.list(), 'profiles-save': input => encryptedStore.save(input), 'profiles-toggle': input => encryptedStore.toggle(input.id, input.enabled), 'profiles-bind': input => encryptedStore.bind(input.id, input.toolIds), 'profiles-models': input => encryptedStore.addModels(input.id, input.entries), 'profiles-discover': input => refreshGoModels(input.id), 'tool-model-save': input => encryptedStore.configureTool(input), 'tool-model-clear': input => encryptedStore.clearTool(input.toolId) })) {
+    for (const [channel, operation] of Object.entries({ 'profiles-model-preview': input => previewConnectionModels(encryptedStore,input,process.argv.includes('--profile-test')?async()=>new Response(JSON.stringify({data:[{id:'deepseek-v4-pro',context_window:1048576,max_output_tokens:65536,tool_call:true,reasoning:true},{id:'fixture-fast',context_window:128000,max_output_tokens:8192}]})):(url,options)=>net.fetch(url,options)), 'profiles-list': () => encryptedStore.list(), 'profiles-save': input => encryptedStore.save(input), 'profiles-toggle': input => encryptedStore.toggle(input.id, input.enabled), 'profiles-bind': input => encryptedStore.bind(input.id, input.toolIds), 'profiles-models': input => encryptedStore.addModels(input.id, input.entries), 'profiles-discover': input => refreshGoModels(input.id), 'tool-model-save': input => encryptedStore.configureTool(input), 'tool-model-clear': input => encryptedStore.clearTool(input.toolId) })) {
       ipcMain.handle(channel, async (event, input) => { if (!trusted(event)) throw Error('无效窗口'); try { if(workspaceService.busy||channel!=='profiles-list'&&await workspaceService.migrationPending())throw Error('请先处理工作台的未完成迁移');return { ok: true, data: await operation(input) }; } catch (error) { return { ok: false, error: error.message }; } });
     }
     ipcMain.handle('catalog', async event => { if (!trusted(event)) throw Error('无效窗口'); return loadCatalog(); });
@@ -148,6 +149,7 @@ else {
       await mainWindow.webContents.executeJavaScript(`document.querySelector('#recovery-items button').click()`);
       await mainWindow.webContents.executeJavaScript(`new Promise((resolve,reject)=>{const end=Date.now()+10000;const check=()=>{if(document.getElementById('recovery-message').textContent.includes('已恢复到'))resolve();else if(Date.now()>end)reject(Error('Startup recovery failed'));else setTimeout(check,100)};check()})`);
       await mainWindow.webContents.executeJavaScript(`document.getElementById('recovery-close').click()`);
+      await require('./model-editor-smoke.cjs')({window:mainWindow,store:encryptedStore,temp:app.getPath('temp')});
       await mainWindow.webContents.executeJavaScript(`(async()=>{await window.profileWorkspaceReady;document.getElementById('profiles-nav').click();document.querySelector('.profiles-pane .intro .primary').click();const f=document.getElementById('profile-form');for(const [k,v] of Object.entries({name:'测试套餐 · 演示数据',vendor:'Example',baseUrl:'https://example.com/v1',key:'fake-test-key',models:'example-model',notes:'仅用于验证，不是真实凭据'}))f.elements[k].value=v;f.requestSubmit();})()`);
       await mainWindow.webContents.executeJavaScript(`new Promise((resolve,reject)=>{const end=Date.now()+10000;const check=()=>{if(document.querySelector('.provider-card'))resolve();else if(Date.now()>end)reject(Error('Profile save failed'));else setTimeout(check,100)};check()})`);
       await mainWindow.webContents.executeJavaScript(`document.querySelector('.provider-card .provider-bottom button:last-child').click()`);
@@ -313,12 +315,12 @@ else {
           dialog.showModal();await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
           body.scrollTop=body.scrollHeight;await new Promise(r=>requestAnimationFrame(r));
           const d=dialog.getBoundingClientRect(),c=close.getBoundingClientRect();
-          if(body.scrollTop<1||dialog.scrollTop!==0)throw Error('Dialog content is not scrolling independently');
+          if(body.scrollTop<1||dialog.scrollTop!==0)throw Error('Dialog content is not scrolling independently: '+(dialog.getAttribute('aria-label')??dialog.id)+' '+JSON.stringify({top:body.scrollTop,dialogTop:dialog.scrollTop,height:body.clientHeight,scrollHeight:body.scrollHeight}));
           if(c.top<d.top||c.bottom>d.bottom||!close.contains(document.elementFromPoint(c.x+c.width/2,c.y+c.height/2)))throw Error('Close button is not reachable after scrolling: '+(dialog.getAttribute('aria-label')??dialog.id));
           const footer=dialog.querySelector('.dialog-footer');if(footer){const f=footer.getBoundingClientRect();if(f.top<d.top||f.bottom>d.bottom)throw Error('Dialog actions are offscreen');}
           focusTarget.focus();const focused=focusTarget.getBoundingClientRect(),scrollArea=body.getBoundingClientRect();if(focused.top<scrollArea.top||focused.bottom>scrollArea.bottom)throw Error('Focused content obscured by dialog controls');
           results.push({dialog:dialog.getAttribute('aria-label')??dialog.id,closeVisible:true,footerVisible:!!footer,focusVisible:true});
-          close.click();if(dialog.open)throw Error('Close control did not close dialog');filler.remove();
+          close.click();if(dialog.open)throw Error('Close control did not close dialog');filler.remove();await new Promise(r=>requestAnimationFrame(r));
         }
         return results;
       })()`);
